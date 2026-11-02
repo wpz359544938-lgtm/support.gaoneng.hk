@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  1-4 星反馈页（Gonengo 自己的建议表单，不是亚马逊页面）
+  字段：评分 / 建议 / 标题 / 姓名 / 提交
+  提交：默认拼好内容走邮件；把 ENDPOINT 填上就走接口
+  ============================================================
+-->
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Suggestions — Gonengo</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FBF9F6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23151310'/%3E%3Ctext x='16' y='22.5' font-family='Arial,Helvetica,sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="vendor/bootstrap.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .form-label{font-size:.8125rem;font-weight:600;margin-bottom:.35rem}
+  .form-control{
+    border-color:var(--bs-border-color);border-radius:12px;
+    padding:.6rem .8rem;font-size:.9375rem;
+  }
+  .form-control:focus,.form-control:focus-visible{
+    border-color:#C9BFAE;box-shadow:0 0 0 .2rem rgba(27,77,62,.10);
+  }
+  .form-control::placeholder{color:#A9A296}
+  textarea.form-control{min-height:132px;resize:vertical}
+
+  /* 评分只做展示，不能在这一页改 */
+  .static-stars .star{pointer-events:none;cursor:default}
+</style>
+</head>
+<body>
+
+<main class="container py-4 py-md-5" style="max-width:500px">
+
+  <!-- 顶栏 -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <a href="index.html" class="small text-decoration-none" style="color:var(--bs-secondary-color)">← Back</a>
+    <div class="d-inline-flex align-items-center gap-2">
+
+      <span class="brand-name">Gonengo</span>
+    </div>
+    <span style="width:42px" aria-hidden="true"></span>
+  </div>
+
+  <!-- ==================== 表单 ==================== -->
+  <div id="form-view">
+    <h1 class="fw-bold mb-4" style="font-size:1.4rem;letter-spacing:-.02em">Customer Suggestions</h1>
+<!--    <p class="small mb-4" style="color:var(&#45;&#45;bs-secondary-color)">What would you change? We read every one.</p>-->
+
+    <form id="feedback-form" novalidate>
+
+      <!-- 评分 -->
+      <div class="mb-4">
+        <label class="form-label d-block">Your rating</label>
+        <div class="d-flex gap-2 static-stars" role="img" aria-label="Your rating">
+          <span class="star" data-value="1" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.7l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+            </svg>
+          </span>
+          <span class="star" data-value="2" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.7l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+            </svg>
+          </span>
+          <span class="star" data-value="3" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.7l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+            </svg>
+          </span>
+          <span class="star" data-value="4" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.7l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+            </svg>
+          </span>
+          <span class="star" data-value="5" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.7l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- 建议 -->
+      <div class="mb-3">
+        <label class="form-label" for="f-review">Your suggestion</label>
+        <textarea class="form-control" id="f-review" name="review" rows="4" required
+                  placeholder="What would you change or improve?"></textarea>
+      </div>
+
+
+
+      <button class="btn btn-dark w-100 py-2" type="submit">Send</button>
+
+      <p class="text-center small mt-2 mb-0" id="f-error" style="color:#B04A3A" hidden>
+        Please write your suggestion first.
+      </p>
+    </form>
+  </div>
+
+  <!-- ==================== 提交后 ==================== -->
+  <div id="thanks-view" class="text-center" hidden>
+    <div class="mb-3">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#1B4D3E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="m8.2 12.4 2.6 2.6 4.9-5.4"/>
+      </svg>
+    </div>
+    <h1 class="fw-bold mb-2" style="font-size:1.4rem;letter-spacing:-.02em">Thank you — we've got it.</h1>
+    <p class="small mb-4" style="color:var(--bs-secondary-color)">
+      We read every suggestion — thanks for helping us improve.
+    </p>
+    <a class="btn btn-dark w-100 py-2" href="index.html">Back to home</a>
+  </div>
+
+</main>
+
+<footer class="text-center small py-4" style="color:var(--bs-secondary-color)">
+  © <span id="year">2026</span> Gonengo
+</footer>
+
+<script>
+  (function () {
+    /* 想接后端就把 ENDPOINT 填上（Netlify Forms / Formspree 等），留空则走邮件 */
+    var ENDPOINT = '';
+    var TO = 'qq369648803@gmail.com';
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    var starsBox = document.querySelector('.static-stars');
+    var stars  = document.querySelectorAll('.star');
+    var rating = Number(new URLSearchParams(location.search).get('stars')) || 0;
+    var form   = document.getElementById('feedback-form');
+    var error  = document.getElementById('f-error');
+
+    // 评分锁定在上一页的选择，直接打开这个页面就退回入口页
+    if (rating < 1 || rating > 5) {
+      location.replace('index.html');
+      return;
+    }
+
+    function paint() {
+      stars.forEach(function (s) {
+        s.classList.toggle('is-on', Number(s.getAttribute('data-value')) <= rating);
+      });
+      starsBox.setAttribute('aria-label', 'You rated ' + rating + ' out of 5');
+    }
+
+    paint();
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      // 字段可能被删掉，取不到就当空字符串
+      function val(id) {
+        var el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+      }
+
+      var review = val('f-review');
+      var title  = val('f-title');
+      var name   = val('f-name');
+
+      if (!review) {
+        error.hidden = false;
+        return;
+      }
+
+      var lines = ['Rating: ' + rating + '/5'];
+      if (title) lines.push('Title: ' + title);
+      if (name)  lines.push('Name: ' + name);
+      lines.push('', review);
+
+      var body = lines.join('\n');
+      var subject = '[Gonengo suggestion] ' + rating + '/5' + (title ? ' - ' + title : '');
+
+      if (ENDPOINT) {
+        fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating: rating, title: title, name: name, review: review })
+        }).catch(function () {});
+      } else {
+        window.location.href = 'mailto:' + TO
+          + '?subject=' + encodeURIComponent(subject)
+          + '&body=' + encodeURIComponent(body);
+      }
+
+      document.getElementById('form-view').hidden = true;
+      document.getElementById('thanks-view').hidden = false;
+      window.scrollTo(0, 0);
+    });
+  })();
+</script>
+
+</body>
+</html>
