@@ -13,6 +13,9 @@
 <title>Installation &amp; Demo Videos — Gonengo</title>
 <meta name="theme-color" content="#FBF9F6">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23151310'/%3E%3Ctext x='16' y='22.5' font-family='Arial,Helvetica,sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+<link rel="prefetch" as="image" href="video-8.jpg">
+<link rel="prefetch" as="image" href="video-11.jpg">
+<link rel="prefetch" as="image" href="video-14.jpg">
 <link rel="stylesheet" href="vendor/bootstrap.min.css">
 <link rel="stylesheet" href="theme.css">
 <style>
@@ -53,7 +56,18 @@
   }
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* 封面上的播放标记（只是提示，真正的按钮是原生控件） */
+  /* YouTube 模式：先显示封面，点了才加载播放器 */
+  .yt-slot{position:absolute;inset:0}
+  .yt-slot iframe{width:100%;height:100%;border:0;display:block}
+  .yt-facade{position:absolute;inset:0;display:grid;place-items:center;cursor:pointer;border:0;padding:0;background:none}
+  .yt-facade img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .yt-facade i{
+    position:relative;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(15,14,12,.55);color:#fff;backdrop-filter:blur(3px);
+    box-shadow:0 10px 26px rgba(0,0,0,.35);
+  }
+
+  /* 封面上的播放标记（原生播放按钮的视觉提示） */
   .player__play{
     position:absolute;inset:0;display:grid;place-items:center;
     cursor:pointer;transition:opacity .2s ease;
@@ -192,6 +206,7 @@
 
       // 先给画面，不等视频：封面立刻出现
       box.style.aspectRatio = v.ratio || '16 / 9';
+
       player.poster = v.poster || '';
       player.preload = 'auto';          // 后台先把这条缓冲好，点了就能播
       player.src = v.file + (BUST_PREFIX ? BUST_PREFIX + (v.ver || '1') : '');
@@ -242,6 +257,18 @@
     });
 
     select(0, false);
+
+    // Wi-Fi 下把其余型号也悄悄缓存，切换型号时就不用等
+    function prefetchOthers() {
+      var c = navigator.connection || {};
+      if (c.saveData || c.type !== 'wifi') return;   // 只在 Wi-Fi 下做，别偷跑流量
+      VIDEOS.forEach(function (v, i) {
+        if (i === current) return;
+        var url = v.file + (BUST_PREFIX ? BUST_PREFIX + (v.ver || '1') : '');
+        fetch(url, { cache: 'force-cache' }).catch(function () {});
+      });
+    }
+    setTimeout(prefetchOthers, 2500);
   })();
 </script>
 
