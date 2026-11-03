@@ -30,16 +30,28 @@
 
   /* 播放器 */
   .player{
-    position:relative;width:100%;aspect-ratio:16/9;
+    position:relative;width:100%;aspect-ratio:16/9;max-height:55vh;
     background:#0F0E0C;border-radius:18px;overflow:hidden;
     box-shadow:0 24px 50px -30px rgba(21,19,15,.8);
   }
   .player video{width:100%;height:100%;display:block;object-fit:contain;background:#0F0E0C}
-  .player__empty{
+  .player__empty,
+  .player__loading{
     position:absolute;inset:0;display:grid;place-items:center;text-align:center;
     padding:20px;color:#B9B2A6;font-size:13px;line-height:1.6;
+    pointer-events:none;
   }
   .player__empty code{color:#E8E2D9;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
+  .player__loading span{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.6);padding:8px 15px;border-radius:999px;color:#E8E2D9;
+  }
+  .player__loading span::before{
+    content:"";width:12px;height:12px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.25);border-top-color:#E8E2D9;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -66,8 +78,9 @@
   </div>
 
   <!-- 播放器 -->
-  <div class="player mb-3">
+  <div class="player mb-3" id="player-box">
     <video id="player" controls playsinline preload="metadata" webkit-playsinline></video>
+    <div class="player__loading" id="loading" hidden><span>Loading video…</span></div>
     <div class="player__empty" id="empty" hidden>
       Video not found<br>
       <code id="missing-name">—</code>
@@ -104,6 +117,8 @@
 
     var chips   = document.querySelector('.chips');
     var player  = document.getElementById('player');
+    var box     = document.getElementById('player-box');
+    var loading = document.getElementById('loading');
     var empty   = document.getElementById('empty');
     var missing = document.getElementById('missing-name');
     var caption = document.getElementById('caption');
@@ -124,6 +139,7 @@
       });
 
       empty.hidden = true;
+      loading.hidden = false;
       missing.textContent = v.file;
       caption.textContent = v.label + ' model';
 
@@ -132,6 +148,16 @@
       player.play().catch(function () {});   // 自动播放被拦就算了，用户可以自己点
       buzz();
     }
+
+    // 竖拍/横拍都按视频本身的画幅显示，不留大黑边
+    player.addEventListener('loadedmetadata', function () {
+      loading.hidden = true;
+      if (player.videoWidth && player.videoHeight) {
+        box.style.aspectRatio = player.videoWidth + ' / ' + player.videoHeight;
+      }
+    });
+    player.addEventListener('playing', function () { loading.hidden = true; });
+    player.addEventListener('waiting', function () { loading.hidden = false; });
 
     VIDEOS.forEach(function (v, i) {
       var b = document.createElement('button');
