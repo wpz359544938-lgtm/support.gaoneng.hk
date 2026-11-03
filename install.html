@@ -52,6 +52,18 @@
     animation:spin .8s linear infinite;
   }
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* 封面上的播放标记（只是提示，真正的按钮是原生控件） */
+  .player__play{
+    position:absolute;inset:0;display:grid;place-items:center;
+    cursor:pointer;transition:opacity .2s ease;
+  }
+  .player__play.is-hidden{opacity:0}
+  .player__play i{
+    width:62px;height:62px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(15,14,12,.55);color:#fff;backdrop-filter:blur(3px);
+    box-shadow:0 10px 26px rgba(0,0,0,.35);
+  }
 </style>
 </head>
 <body>
@@ -79,7 +91,12 @@
 
   <!-- 播放器 -->
   <div class="player mb-3" id="player-box">
-    <video id="player" controls playsinline preload="metadata" webkit-playsinline></video>
+    <video id="player" controls playsinline preload="none" webkit-playsinline></video>
+    <div class="player__play" id="play-badge" aria-hidden="true">
+      <i>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.2v9.6L17 12z"/></svg>
+      </i>
+    </div>
     <div class="player__loading" id="loading" hidden><span>Loading video…</span></div>
     <div class="player__empty" id="empty" hidden>
       Video not found<br>
@@ -99,19 +116,16 @@
   © <span id="year">2026</span> Gonengo
 </footer>
 
+<script src="video-manifest.js"></script>
 <script>
   (function () {
-    /* ==========================================================
-       ★ 改这里：label 是按钮上显示的字，file 是你的 mp4 文件名
-       视频和 index.html 放同一个文件夹
-       ========================================================== */
-    var VIDEOS = [
-      { label: '5 Rings',  file: 'video-5.mp4'  },
-      { label: '8 Rings',  file: 'video-8.mp4'  },
-      { label: '11 Rings', file: 'video-11.mp4' },
-      { label: '14 Rings', file: 'video-14.mp4' }
+    /* 型号清单在 video-manifest.js 里，由 tools 自动生成，不用手改 */
+    var VIDEOS = window.VIDEOS || [
+      { label: '5 Rings',  file: 'video-5.mp4',  poster: 'video-5.jpg',  ver: '1', ratio: '9 / 16' },
+      { label: '8 Rings',  file: 'video-8.mp4',  poster: 'video-8.jpg',  ver: '1', ratio: '9 / 16' },
+      { label: '11 Rings', file: 'video-11.mp4', poster: 'video-11.jpg', ver: '1', ratio: '9 / 16' },
+      { label: '14 Rings', file: 'video-14.mp4', poster: 'video-14.jpg', ver: '1', ratio: '9 / 16' }
     ];
-    /* ========================================================== */
 
     document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -119,17 +133,24 @@
     var player  = document.getElementById('player');
     var box     = document.getElementById('player-box');
     var loading = document.getElementById('loading');
+    var badge   = document.getElementById('play-badge');
     var empty   = document.getElementById('empty');
     var missing = document.getElementById('missing-name');
     var caption = document.getElementById('caption');
     var current = -1;
 
+    // 每个视频自带版本号（清单生成），手机不会再用旧缓存
+    var BUST_PREFIX = location.protocol === 'file:' ? '' : '?v=';
+
     function buzz() {
       if (navigator.vibrate) { try { navigator.vibrate(6); } catch (e) {} }
     }
 
-    function select(i) {
-      if (i === current) return;
+    function select(i, autoplay) {
+      if (i === current) {
+        if (autoplay) { loading.hidden = false; player.play().catch(function () {}); }
+        return;
+      }
       current = i;
       var v = VIDEOS[i];
 
@@ -139,15 +160,28 @@
       });
 
       empty.hidden = true;
-      loading.hidden = false;
+      loading.hidden = true;
       missing.textContent = v.file;
       caption.textContent = v.label + ' model';
 
-      player.src = v.file;
-      player.load();
-      player.play().catch(function () {});   // 自动播放被拦就算了，用户可以自己点
-      buzz();
+      // 先给画面，不等视频：封面立刻出现
+      box.style.aspectRatio = v.ratio || '16 / 9';
+      player.poster = v.poster || '';
+      player.src = v.file + BUST_PREFIX + (v.ver || '1');
+      badge.classList.remove('is-hidden');
+
+      if (autoplay) {
+        loading.hidden = false;
+        player.play().catch(function () {});
+        buzz();
+      }
     }
+
+    // 点封面上的播放标记也能开始
+    badge.addEventListener('click', function () {
+      loading.hidden = false;
+      player.play().catch(function () {});
+    });
 
     // 竖拍/横拍都按视频本身的画幅显示，不留大黑边
     player.addEventListener('loadedmetadata', function () {
@@ -156,7 +190,7 @@
         box.style.aspectRatio = player.videoWidth + ' / ' + player.videoHeight;
       }
     });
-    player.addEventListener('playing', function () { loading.hidden = true; });
+    player.addEventListener('playing', function () { loading.hidden = true; badge.classList.add('is-hidden'); });
     player.addEventListener('waiting', function () { loading.hidden = false; });
 
     VIDEOS.forEach(function (v, i) {
@@ -166,7 +200,7 @@
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', 'false');
       b.textContent = v.label;
-      b.addEventListener('click', function () { select(i); });
+      b.addEventListener('click', function () { select(i, true); });
       chips.appendChild(b);
     });
 
@@ -175,7 +209,7 @@
       empty.hidden = false;
     });
 
-    select(0);
+    select(0, false);   // 首次进页面不下载视频，点了才加载
   })();
 </script>
 
