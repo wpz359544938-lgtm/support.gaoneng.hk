@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  安装视频页
+  ★ 唯一要改的地方：下面 VIDEOS 里的 file，填你实际的 mp4 文件名
+    视频文件放在这个页面的同一层（和 index.html 并排）即可
+  ============================================================
+-->
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installation &amp; Demo Videos — Gonengo</title>
+<meta name="theme-color" content="#FBF9F6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23151310'/%3E%3Ctext x='16' y='22.5' font-family='Arial,Helvetica,sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="vendor/bootstrap.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* 型号选择 */
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .chip{
+    padding:11px 4px;border:1px solid var(--bs-border-color);background:#fff;
+    border-radius:13px;font:inherit;font-size:13.5px;font-weight:600;color:#15130F;
+    cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:transform .15s ease, background-color .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .chip:active{transform:scale(.955)}
+  .chip.is-on{background:#15130F;border-color:#15130F;color:#fff}
+  .chip:focus-visible{outline:2px solid var(--brand-green);outline-offset:3px}
+
+  /* 播放器 */
+  .player{
+    position:relative;width:100%;aspect-ratio:16/9;
+    background:#0F0E0C;border-radius:18px;overflow:hidden;
+    box-shadow:0 24px 50px -30px rgba(21,19,15,.8);
+  }
+  .player video{width:100%;height:100%;display:block;object-fit:contain;background:#0F0E0C}
+  .player__empty{
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+    padding:20px;color:#B9B2A6;font-size:13px;line-height:1.6;
+  }
+  .player__empty code{color:#E8E2D9;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<main class="container py-4" style="max-width:520px">
+
+  <!-- 顶栏 -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <a href="index.html" class="small text-decoration-none" style="color:var(--bs-secondary-color)">← Back</a>
+    <div class="d-inline-flex align-items-center gap-2">
+
+      <span class="brand-name">Gonengo</span>
+    </div>
+    <span style="width:42px" aria-hidden="true"></span>
+  </div>
+
+  <!-- 标题 -->
+  <h1 class="fw-bold mb-1" style="font-size:1.4rem;letter-spacing:-.02em">Installation &amp; Demo Videos</h1>
+  <p class="small mb-4" style="color:var(--bs-secondary-color)">Pick your model — each clip takes about two minutes.</p>
+
+  <!-- 型号 -->
+  <div class="chips mb-3" role="tablist" aria-label="Model">
+    <!-- 由 JS 渲染 -->
+  </div>
+
+  <!-- 播放器 -->
+  <div class="player mb-3">
+    <video id="player" controls playsinline preload="metadata" webkit-playsinline></video>
+    <div class="player__empty" id="empty" hidden>
+      Video not found<br>
+      <code id="missing-name">—</code>
+    </div>
+  </div>
+
+  <p class="small mb-4" id="caption" style="color:var(--bs-secondary-color)"></p>
+
+  <p class="small mb-0" style="color:var(--bs-secondary-color)">
+    Something not clear? <a class="link-secondary" href="mailto:qq369648803@gmail.com?subject=Installation%20help%20-%20Gonengo">Email us</a> — we'll walk you through it.
+  </p>
+
+</main>
+
+<footer class="text-center small py-3" style="color:var(--bs-secondary-color)">
+  © <span id="year">2026</span> Gonengo
+</footer>
+
+<script>
+  (function () {
+    /* ==========================================================
+       ★ 改这里：label 是按钮上显示的字，file 是你的 mp4 文件名
+       视频和 index.html 放同一个文件夹
+       ========================================================== */
+    var VIDEOS = [
+      { label: '5 Rings',  file: 'video-5.mp4'  },
+      { label: '8 Rings',  file: 'video-8.mp4'  },
+      { label: '11 Rings', file: 'video-11.mp4' },
+      { label: '14 Rings', file: 'video-14.mp4' }
+    ];
+    /* ========================================================== */
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    var chips   = document.querySelector('.chips');
+    var player  = document.getElementById('player');
+    var empty   = document.getElementById('empty');
+    var missing = document.getElementById('missing-name');
+    var caption = document.getElementById('caption');
+    var current = -1;
+
+    function buzz() {
+      if (navigator.vibrate) { try { navigator.vibrate(6); } catch (e) {} }
+    }
+
+    function select(i) {
+      if (i === current) return;
+      current = i;
+      var v = VIDEOS[i];
+
+      Array.prototype.forEach.call(chips.children, function (b, k) {
+        b.classList.toggle('is-on', k === i);
+        b.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      });
+
+      empty.hidden = true;
+      missing.textContent = v.file;
+      caption.textContent = v.label + ' model';
+
+      player.src = v.file;
+      player.load();
+      player.play().catch(function () {});   // 自动播放被拦就算了，用户可以自己点
+      buzz();
+    }
+
+    VIDEOS.forEach(function (v, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', 'false');
+      b.textContent = v.label;
+      b.addEventListener('click', function () { select(i); });
+      chips.appendChild(b);
+    });
+
+    player.addEventListener('error', function () {
+      if (current < 0) return;
+      empty.hidden = false;
+    });
+
+    select(0);
+  })();
+</script>
+
+</body>
+</html>
