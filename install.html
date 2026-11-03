@@ -104,7 +104,10 @@
     </div>
   </div>
 
-  <p class="small mb-4" id="caption" style="color:var(--bs-secondary-color)"></p>
+  <p class="small mb-2" id="caption" style="color:var(--bs-secondary-color)"></p>
+  <p class="small mb-3" id="slow-hint" hidden>
+    <a class="link-secondary" id="slow-link" href="#" target="_blank" rel="noopener">Video not starting? Open it directly →</a>
+  </p>
 
   <p class="small mb-0" style="color:var(--bs-secondary-color)">
     Something not clear? <a class="link-secondary" href="mailto:qq369648803@gmail.com?subject=Installation%20help%20-%20Gonengo">Email us</a> — we'll walk you through it.
@@ -137,7 +140,11 @@
     var empty   = document.getElementById('empty');
     var missing = document.getElementById('missing-name');
     var caption = document.getElementById('caption');
+    var slowHint = document.getElementById('slow-hint');
+    var slowLink = document.getElementById('slow-link');
     var current = -1;
+    var wantPlay = false;
+    var slowTimer = null;
 
     // 每个视频自带版本号（清单生成），手机不会再用旧缓存
     var BUST_PREFIX = location.protocol === 'file:' ? '' : '?v=';
@@ -146,9 +153,27 @@
       if (navigator.vibrate) { try { navigator.vibrate(6); } catch (e) {} }
     }
 
+    function armSlowHint() {
+      clearTimeout(slowTimer);
+      slowHint.hidden = true;
+      slowTimer = setTimeout(function () {
+        if (player.readyState < 2) slowHint.hidden = false;
+      }, 8000);
+    }
+
+    function start() {
+      loading.hidden = false;
+      armSlowHint();
+      if (player.readyState >= 3) {
+        player.play().catch(function () {});
+      } else {
+        wantPlay = true;   // 等缓冲够了再播，避免 play() 被加载打断
+      }
+    }
+
     function select(i, autoplay) {
       if (i === current) {
-        if (autoplay) { loading.hidden = false; player.play().catch(function () {}); }
+        if (autoplay) start();
         return;
       }
       current = i;
@@ -163,34 +188,40 @@
       loading.hidden = true;
       missing.textContent = v.file;
       caption.textContent = v.label + ' model';
+      slowLink.href = v.file;
 
       // 先给画面，不等视频：封面立刻出现
       box.style.aspectRatio = v.ratio || '16 / 9';
       player.poster = v.poster || '';
-      player.src = v.file + BUST_PREFIX + (v.ver || '1');
+      player.preload = 'auto';          // 后台先把这条缓冲好，点了就能播
+      player.src = v.file + (BUST_PREFIX ? BUST_PREFIX + (v.ver || '1') : '');
       badge.classList.remove('is-hidden');
+      wantPlay = false;
+      armSlowHint();
 
-      if (autoplay) {
-        loading.hidden = false;
-        player.play().catch(function () {});
-        buzz();
-      }
+      if (autoplay) { start(); buzz(); }
     }
 
     // 点封面上的播放标记也能开始
-    badge.addEventListener('click', function () {
-      loading.hidden = false;
-      player.play().catch(function () {});
+    badge.addEventListener('click', function () { start(); });
+
+    player.addEventListener('loadeddata', function () {
+      loading.hidden = true;
+      if (wantPlay) { wantPlay = false; player.play().catch(function () {}); }
     });
 
     // 竖拍/横拍都按视频本身的画幅显示，不留大黑边
     player.addEventListener('loadedmetadata', function () {
-      loading.hidden = true;
       if (player.videoWidth && player.videoHeight) {
         box.style.aspectRatio = player.videoWidth + ' / ' + player.videoHeight;
       }
     });
-    player.addEventListener('playing', function () { loading.hidden = true; badge.classList.add('is-hidden'); });
+    player.addEventListener('playing', function () {
+      loading.hidden = true; slowHint.hidden = true; badge.classList.add('is-hidden');
+    });
+    player.addEventListener('pause', function () {
+      if (!player.ended) badge.classList.remove('is-hidden');
+    });
     player.addEventListener('waiting', function () { loading.hidden = false; });
 
     VIDEOS.forEach(function (v, i) {
@@ -206,10 +237,11 @@
 
     player.addEventListener('error', function () {
       if (current < 0) return;
+      loading.hidden = true;
       empty.hidden = false;
     });
 
-    select(0, false);   // 首次进页面不下载视频，点了才加载
+    select(0, false);
   })();
 </script>
 
