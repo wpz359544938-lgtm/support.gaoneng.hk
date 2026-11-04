@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <!--
   ============================================================
-  安装视频页
-  ★ 唯一要改的地方：下面 VIDEOS 里的 file，填你实际的 mp4 文件名
-    视频文件放在这个页面的同一层（和 index.html 并排）即可
+  安装视频页（YouTube 版）
+  视频地址在 video-manifest.js 里维护，这里是播放逻辑
   ============================================================
 -->
 <html lang="en" data-bs-theme="light">
@@ -13,9 +12,6 @@
 <title>Installation &amp; Demo Videos — Gonengo</title>
 <meta name="theme-color" content="#FBF9F6">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23151310'/%3E%3Ctext x='16' y='22.5' font-family='Arial,Helvetica,sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E">
-<link rel="prefetch" as="image" href="video-8.jpg">
-<link rel="prefetch" as="image" href="video-11.jpg">
-<link rel="prefetch" as="image" href="video-14.jpg">
 <link rel="stylesheet" href="vendor/bootstrap.min.css">
 <link rel="stylesheet" href="theme.css">
 <style>
@@ -31,53 +27,26 @@
   .chip.is-on{background:#15130F;border-color:#15130F;color:#fff}
   .chip:focus-visible{outline:2px solid var(--brand-green);outline-offset:3px}
 
-  /* 播放器 */
+  /* 播放器：先给封面，点了才加载 YouTube */
   .player{
-    position:relative;width:100%;aspect-ratio:16/9;max-height:55vh;
+    position:relative;width:100%;aspect-ratio:9/16;max-height:60vh;
     background:#0F0E0C;border-radius:18px;overflow:hidden;
     box-shadow:0 24px 50px -30px rgba(21,19,15,.8);
   }
-  .player video{width:100%;height:100%;display:block;object-fit:contain;background:#0F0E0C}
-  .player__empty,
-  .player__loading{
-    position:absolute;inset:0;display:grid;place-items:center;text-align:center;
-    padding:20px;color:#B9B2A6;font-size:13px;line-height:1.6;
-    pointer-events:none;
+  .player iframe{width:100%;height:100%;border:0;display:block}
+  .yt-facade{
+    position:absolute;inset:0;display:grid;place-items:center;cursor:pointer;
+    border:0;padding:0;background:#0F0E0C;
   }
-  .player__empty code{color:#E8E2D9;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
-  .player__loading span{
-    display:inline-flex;align-items:center;gap:8px;
-    background:rgba(0,0,0,.6);padding:8px 15px;border-radius:999px;color:#E8E2D9;
-  }
-  .player__loading span::before{
-    content:"";width:12px;height:12px;border-radius:50%;
-    border:2px solid rgba(255,255,255,.25);border-top-color:#E8E2D9;
-    animation:spin .8s linear infinite;
-  }
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  /* YouTube 模式：先显示封面，点了才加载播放器 */
-  .yt-slot{position:absolute;inset:0}
-  .yt-slot iframe{width:100%;height:100%;border:0;display:block}
-  .yt-facade{position:absolute;inset:0;display:grid;place-items:center;cursor:pointer;border:0;padding:0;background:none}
   .yt-facade img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .yt-facade i{
     position:relative;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;
     background:rgba(15,14,12,.55);color:#fff;backdrop-filter:blur(3px);
     box-shadow:0 10px 26px rgba(0,0,0,.35);
+    transition:transform .15s ease;
   }
-
-  /* 封面上的播放标记（原生播放按钮的视觉提示） */
-  .player__play{
-    position:absolute;inset:0;display:grid;place-items:center;
-    cursor:pointer;transition:opacity .2s ease;
-  }
-  .player__play.is-hidden{opacity:0}
-  .player__play i{
-    width:62px;height:62px;border-radius:50%;display:grid;place-items:center;
-    background:rgba(15,14,12,.55);color:#fff;backdrop-filter:blur(3px);
-    box-shadow:0 10px 26px rgba(0,0,0,.35);
-  }
+  .yt-facade:active i{transform:scale(.94)}
+  .yt-facade:focus-visible{outline:2px solid var(--brand-green);outline-offset:-3px}
 </style>
 </head>
 <body>
@@ -88,7 +57,6 @@
   <div class="d-flex align-items-center justify-content-between mb-4">
     <a href="index.html" class="small text-decoration-none" style="color:var(--bs-secondary-color)">← Back</a>
     <div class="d-inline-flex align-items-center gap-2">
-
       <span class="brand-name">Gonengo</span>
     </div>
     <span style="width:42px" aria-hidden="true"></span>
@@ -99,29 +67,12 @@
   <p class="small mb-4" style="color:var(--bs-secondary-color)">Pick your model — each clip takes about two minutes.</p>
 
   <!-- 型号 -->
-  <div class="chips mb-3" role="tablist" aria-label="Model">
-    <!-- 由 JS 渲染 -->
-  </div>
+  <div class="chips mb-3" role="tablist" aria-label="Model"></div>
 
   <!-- 播放器 -->
-  <div class="player mb-3" id="player-box">
-    <video id="player" controls playsinline preload="none" webkit-playsinline></video>
-    <div class="player__play" id="play-badge" aria-hidden="true">
-      <i>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.2v9.6L17 12z"/></svg>
-      </i>
-    </div>
-    <div class="player__loading" id="loading" hidden><span>Loading video…</span></div>
-    <div class="player__empty" id="empty" hidden>
-      Video not found<br>
-      <code id="missing-name">—</code>
-    </div>
-  </div>
+  <div class="player mb-3" id="player-box"></div>
 
-  <p class="small mb-2" id="caption" style="color:var(--bs-secondary-color)"></p>
-  <p class="small mb-3" id="slow-hint" hidden>
-    <a class="link-secondary" id="slow-link" href="#" target="_blank" rel="noopener">Video not starting? Open it directly →</a>
-  </p>
+  <p class="small mb-3" id="caption" style="color:var(--bs-secondary-color)"></p>
 
   <p class="small mb-0" style="color:var(--bs-secondary-color)">
     Something not clear? <a class="link-secondary" href="mailto:qq369648803@gmail.com?subject=Installation%20help%20-%20Gonengo">Email us</a> — we'll walk you through it.
@@ -136,108 +87,78 @@
 <script src="video-manifest.js"></script>
 <script>
   (function () {
-    /* 型号清单在 video-manifest.js 里，由 tools 自动生成，不用手改 */
-    var VIDEOS = window.VIDEOS || [
-      { label: '5 Rings',  file: 'video-5.mp4',  poster: 'video-5.jpg',  ver: '1', ratio: '9 / 16' },
-      { label: '8 Rings',  file: 'video-8.mp4',  poster: 'video-8.jpg',  ver: '1', ratio: '9 / 16' },
-      { label: '11 Rings', file: 'video-11.mp4', poster: 'video-11.jpg', ver: '1', ratio: '9 / 16' },
-      { label: '14 Rings', file: 'video-14.mp4', poster: 'video-14.jpg', ver: '1', ratio: '9 / 16' }
-    ];
+    /* 型号清单在 video-manifest.js 里，改那个文件即可 */
+    var VIDEOS = window.VIDEOS || [];
 
     document.getElementById('year').textContent = new Date().getFullYear();
 
     var chips   = document.querySelector('.chips');
-    var player  = document.getElementById('player');
     var box     = document.getElementById('player-box');
-    var loading = document.getElementById('loading');
-    var badge   = document.getElementById('play-badge');
-    var empty   = document.getElementById('empty');
-    var missing = document.getElementById('missing-name');
     var caption = document.getElementById('caption');
-    var slowHint = document.getElementById('slow-hint');
-    var slowLink = document.getElementById('slow-link');
     var current = -1;
-    var wantPlay = false;
-    var slowTimer = null;
 
-    // 每个视频自带版本号（清单生成），手机不会再用旧缓存
-    var BUST_PREFIX = location.protocol === 'file:' ? '' : '?v=';
+    var PLAY_ICON = '<i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.2v9.6L17 12z"/></svg></i>';
 
     function buzz() {
       if (navigator.vibrate) { try { navigator.vibrate(6); } catch (e) {} }
     }
 
-    function armSlowHint() {
-      clearTimeout(slowTimer);
-      slowHint.hidden = true;
-      slowTimer = setTimeout(function () {
-        if (player.readyState < 2) slowHint.hidden = false;
-      }, 8000);
+    // 有本地封面用本地的，没有就退回 YouTube 自带缩略图
+    function posterUrl(v) {
+      if (v.poster) return v.poster;
+      if (v.yt) return 'https://i.ytimg.com/vi/' + v.yt + '/maxresdefault.jpg';
+      return '';
     }
 
-    function start() {
-      loading.hidden = false;
-      armSlowHint();
-      if (player.readyState >= 3) {
-        player.play().catch(function () {});
-      } else {
-        wantPlay = true;   // 等缓冲够了再播，避免 play() 被加载打断
+    function renderFacade(v) {
+      box.innerHTML = '';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'yt-facade';
+      btn.setAttribute('aria-label', 'Play ' + v.label + ' installation video');
+      var p = posterUrl(v);
+      btn.innerHTML = (p ? '<img src="' + p + '" alt="">' : '') + PLAY_ICON;
+      var im = btn.querySelector('img');
+      if (im && v.yt) {
+        // 高清缩略图不一定存在，失败就退回标准图
+        im.onerror = function () { im.onerror = null; im.src = 'https://i.ytimg.com/vi/' + v.yt + '/hqdefault.jpg'; };
       }
+
+      btn.addEventListener('click', function () {
+        if (!v.yt) {
+          caption.textContent = v.label + ' — video link not set yet';
+          return;
+        }
+        box.innerHTML =
+          '<iframe src="https://www.youtube-nocookie.com/embed/' + v.yt +
+          '?autoplay=1&playsinline=1&rel=0" title="' + v.label +
+          ' installation video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+        buzz();
+      });
+
+      box.appendChild(btn);
     }
 
     function select(i, autoplay) {
       if (i === current) {
-        if (autoplay) start();
+        if (autoplay) box.querySelector('.yt-facade') && box.querySelector('.yt-facade').click();
         return;
       }
       current = i;
       var v = VIDEOS[i];
+      if (!v) return;
 
       Array.prototype.forEach.call(chips.children, function (b, k) {
         b.classList.toggle('is-on', k === i);
         b.setAttribute('aria-selected', k === i ? 'true' : 'false');
       });
 
-      empty.hidden = true;
-      loading.hidden = true;
-      missing.textContent = v.file;
+      box.style.aspectRatio = v.ratio || '9 / 16';
       caption.textContent = v.label + ' model';
-      slowLink.href = v.file;
+      renderFacade(v);
 
-      // 先给画面，不等视频：封面立刻出现
-      box.style.aspectRatio = v.ratio || '16 / 9';
-
-      player.poster = v.poster || '';
-      player.preload = 'auto';          // 后台先把这条缓冲好，点了就能播
-      player.src = v.file + (BUST_PREFIX ? BUST_PREFIX + (v.ver || '1') : '');
-      badge.classList.remove('is-hidden');
-      wantPlay = false;
-      armSlowHint();
-
-      if (autoplay) { start(); buzz(); }
+      if (autoplay) buzz();
     }
-
-    // 点封面上的播放标记也能开始
-    badge.addEventListener('click', function () { start(); });
-
-    player.addEventListener('loadeddata', function () {
-      loading.hidden = true;
-      if (wantPlay) { wantPlay = false; player.play().catch(function () {}); }
-    });
-
-    // 竖拍/横拍都按视频本身的画幅显示，不留大黑边
-    player.addEventListener('loadedmetadata', function () {
-      if (player.videoWidth && player.videoHeight) {
-        box.style.aspectRatio = player.videoWidth + ' / ' + player.videoHeight;
-      }
-    });
-    player.addEventListener('playing', function () {
-      loading.hidden = true; slowHint.hidden = true; badge.classList.add('is-hidden');
-    });
-    player.addEventListener('pause', function () {
-      if (!player.ended) badge.classList.remove('is-hidden');
-    });
-    player.addEventListener('waiting', function () { loading.hidden = false; });
 
     VIDEOS.forEach(function (v, i) {
       var b = document.createElement('button');
@@ -250,25 +171,7 @@
       chips.appendChild(b);
     });
 
-    player.addEventListener('error', function () {
-      if (current < 0) return;
-      loading.hidden = true;
-      empty.hidden = false;
-    });
-
-    select(0, false);
-
-    // Wi-Fi 下把其余型号也悄悄缓存，切换型号时就不用等
-    function prefetchOthers() {
-      var c = navigator.connection || {};
-      if (c.saveData || c.type !== 'wifi') return;   // 只在 Wi-Fi 下做，别偷跑流量
-      VIDEOS.forEach(function (v, i) {
-        if (i === current) return;
-        var url = v.file + (BUST_PREFIX ? BUST_PREFIX + (v.ver || '1') : '');
-        fetch(url, { cache: 'force-cache' }).catch(function () {});
-      });
-    }
-    setTimeout(prefetchOthers, 2500);
+    if (VIDEOS.length) select(0, false);
   })();
 </script>
 
